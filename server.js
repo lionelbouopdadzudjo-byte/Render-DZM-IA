@@ -1,9 +1,17 @@
 const express = require("express");
 const axios = require("axios");
 const Tesseract = require("tesseract.js");
+const cors = require("cors");
 
 const app = express();
-app.use(express.json());
+
+app.use(cors());
+app.use(express.json({ limit: "10mb" }));
+
+// Route test
+app.get("/ping", (req, res) => {
+  res.json({ status: "OK" });
+});
 
 app.post("/ocr", async (req, res) => {
   try {
@@ -16,14 +24,12 @@ app.post("/ocr", async (req, res) => {
       });
     }
 
-    // Télécharger l'image en buffer
     const response = await axios.get(image, {
       responseType: "arraybuffer"
     });
 
     const imageBuffer = Buffer.from(response.data, "binary");
 
-    // Lancer OCR
     const { data: { text } } = await Tesseract.recognize(
       imageBuffer,
       "fra"
