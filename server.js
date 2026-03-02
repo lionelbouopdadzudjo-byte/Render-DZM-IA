@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
-// Route de test
+// Route racine
 app.get("/", (req, res) => {
   res.send("DZM OCR Server is running");
 });
@@ -18,10 +18,10 @@ app.get("/ping", (req, res) => {
   res.json({ status: "OK" });
 });
 
-// Route OCR
-app.post("/ocr", async (req, res) => {
+// OCR via GET
+app.get("/ocr", async (req, res) => {
   try {
-    const { image } = req.body;
+    const image = req.query.image;
 
     if (!image) {
       return res.status(400).json({
@@ -30,7 +30,7 @@ app.post("/ocr", async (req, res) => {
       });
     }
 
-    // Télécharger l'image depuis l'URL
+    // Télécharger l'image
     const response = await axios.get(image, {
       responseType: "arraybuffer"
     });
