@@ -1,63 +1,91 @@
-const express = require("express");
-const axios = require("axios");
-const Tesseract = require("tesseract.js");
-const cors = require("cors");
+import express from "express"
+import fetch from "node-fetch"
+import dotenv from "dotenv"
+import cors from "cors"
 
-const app = express();
+dotenv.config()
 
-app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+const app = express()
 
-// Route racine
+app.use(cors())
+app.use(express.json())
+
+// =============================
+// ROUTE TEST
+// =============================
 app.get("/", (req, res) => {
-  res.send("DZM OCR Server is running");
-});
+  res.send("Serveur DZM IA actif")
+})
 
-// Route ping
-app.get("/ping", (req, res) => {
-  res.json({ status: "OK" });
-});
+// =============================
+// INSERTION PAIEMENT
+// =============================
+app.post("/insert-paiement", async (req, res) => {
 
-// OCR via GET
-app.get("/ocr", async (req, res) => {
   try {
-    const image = req.query.image;
 
-    if (!image) {
-      return res.status(400).json({
-        success: false,
-        error: "No image URL provided"
-      });
+    const {
+      transaction_id,
+      montant,
+      numero,
+      beneficiaire,
+      mode_paiement,
+      date_transaction
+    } = req.body
+
+    const payload = {
+      transaction_id,
+      montant,
+      numero,
+      beneficiaire,
+      mode_paiement,
+      date_transaction
     }
 
-    // Télécharger l'image
-    const response = await axios.get(image, {
-      responseType: "arraybuffer"
-    });
+    console.log("=== PAYLOAD RECU ===")
+    console.log(payload)
 
-    const imageBuffer = Buffer.from(response.data, "binary");
+    const response = await fetch(
+      "https://mvuerkeshsjoxvkwlz.supabase.co/rest/v1/paiements",
+      {
+        method: "POST",
+        headers: {
+          "apikey": process.env.SUPABASE_KEY,
+          "Authorization": `Bearer ${process.env.SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=representation"
+        },
+        body: JSON.stringify(payload)
+      }
+    )
 
-    // Lancer OCR
-    const { data: { text } } = await Tesseract.recognize(
-      imageBuffer,
-      "fra"
-    );
+    const data = await response.text()
 
-    res.json({
-      success: true,
-      raw_text: text
-    });
+    console.log("=== STATUS SUPABASE ===")
+    console.log(response.status)
+
+    console.log("=== REPONSE SUPABASE ===")
+    console.log(data)
+
+    res.status(response.status).send(data)
 
   } catch (error) {
-    console.error("OCR ERROR:", error.message);
+
+    console.log("=== ERREUR SERVEUR ===")
+    console.log(error.message)
 
     res.status(500).json({
-      success: false,
       error: error.message
-    });
+    })
   }
-});
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log("DZM OCR server running");
-});
+})
+
+// =============================
+// START SERVER
+// =============================
+const PORT = process.env.PORT || 3000
+
+app.listen(PORT, () => {
+  console.log(`Serveur démarré sur le port ${PORT}`)
+})
