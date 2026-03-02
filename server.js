@@ -8,11 +8,17 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
-// Route test
+// Route de test
+app.get("/", (req, res) => {
+  res.send("DZM OCR Server is running");
+});
+
+// Route ping
 app.get("/ping", (req, res) => {
   res.json({ status: "OK" });
 });
 
+// Route OCR
 app.post("/ocr", async (req, res) => {
   try {
     const { image } = req.body;
@@ -24,12 +30,14 @@ app.post("/ocr", async (req, res) => {
       });
     }
 
+    // Télécharger l'image depuis l'URL
     const response = await axios.get(image, {
       responseType: "arraybuffer"
     });
 
     const imageBuffer = Buffer.from(response.data, "binary");
 
+    // Lancer OCR
     const { data: { text } } = await Tesseract.recognize(
       imageBuffer,
       "fra"
@@ -41,10 +49,11 @@ app.post("/ocr", async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("OCR ERROR:", error.message);
+
     res.status(500).json({
       success: false,
-      error: "OCR failed"
+      error: error.message
     });
   }
 });
