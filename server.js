@@ -1,21 +1,33 @@
 const express = require("express");
-const multer = require("multer");
+const axios = require("axios");
 const Tesseract = require("tesseract.js");
-const fs = require("fs");
 
 const app = express();
-const upload = multer({ dest: "uploads/" });
+app.use(express.json());
 
-app.post("/ocr", upload.single("image"), async (req, res) => {
+app.post("/ocr", async (req, res) => {
   try {
-    const imagePath = req.file.path;
+    const { image } = req.body;
 
+    if (!image) {
+      return res.status(400).json({
+        success: false,
+        error: "No image URL provided"
+      });
+    }
+
+    // Télécharger l'image en buffer
+    const response = await axios.get(image, {
+      responseType: "arraybuffer"
+    });
+
+    const imageBuffer = Buffer.from(response.data, "binary");
+
+    // Lancer OCR
     const { data: { text } } = await Tesseract.recognize(
-      imagePath,
+      imageBuffer,
       "fra"
     );
-
-    fs.unlinkSync(imagePath);
 
     res.json({
       success: true,
